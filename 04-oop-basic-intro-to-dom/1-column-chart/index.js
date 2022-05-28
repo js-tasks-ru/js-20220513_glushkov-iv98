@@ -45,12 +45,12 @@ export default class ColumnChart {
     this.render();
   }
 
-  destroy() {
-    this.element = null;
+  remove() {
+    this.element.remove();
   }
 
-  remove() {
-    this.element = null;
+  destroy() {
+    this.remove();
   }
 
   render() {
