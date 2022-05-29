@@ -52,7 +52,6 @@ export default class NotificationMessage {
     if (element) {
       this.outerElement = element;
       this.outerElement.innerHTML = this.element.outerHTML;
-      console.log(this.outerElement);
       document.body.append(this.outerElement);
     } else {
       document.body.append(this.element);
