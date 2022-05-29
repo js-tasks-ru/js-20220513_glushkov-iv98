@@ -22,14 +22,21 @@ export default class ColumnChart {
     this.render();
   }
 
+  _getColumnProps(data) {
+    const maxValue = Math.max(...data);
+    const scale = 50 / maxValue;
+
+    return data.map(item => {
+      return {
+        percent: (item / maxValue * 100).toFixed(0) + '%',
+        value: String(Math.floor(item * scale))
+      };
+    });
+  }
+
   _generateColumnsChart() {
-    const maxValue = Math.max(...this.data);
-
-    return this.data.map((value) => {
-      const normalizedValue = Math.floor(this.chartHeight * (value / maxValue));
-      const percentValue = (normalizedValue / this.chartHeight * 100).toFixed(0);
-
-      return `<div style="--value: ${ normalizedValue }" data-tooltip="${ percentValue }%"></div>`;
+    return this._getColumnProps(this.data).map((value) => {
+      return `<div style="--value: ${ value.value }" data-tooltip="${ value.percent }"></div>`;
     }).join('');
   }
 
@@ -66,17 +73,21 @@ export default class ColumnChart {
   getTemplate() {
     const viewLink = this.link ? `<a href="/sales" class="column-chart__link">View all</a>` : '';
 
-    return (`<div class="column-chart__title">
+    return (
+      `
+      <div class="column-chart__title">
             ${ this.label }
             ${ viewLink }
-          </div>
-          <div class="column-chart__container">
-            <div data-element="header" class="column-chart__header">
-              ${ this.formatHeading(this.value) }
-            </div>
-            <div data-element="body" class="column-chart__chart">
-              ${ this._generateColumnsChart() }
-            </div>
-          </div>`);
+      </div>
+      <div class="column-chart__container">
+        <div data-element="header" class="column-chart__header">
+          ${ this.formatHeading(this.value) }
+        </div>
+        <div data-element="body" class="column-chart__chart">
+          ${ this._generateColumnsChart() }
+        </div>
+      </div>
+      `
+    );
   }
 }
