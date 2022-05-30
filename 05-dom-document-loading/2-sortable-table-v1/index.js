@@ -1,7 +1,9 @@
 export default class SortableTable {
-  element = null;
+  element = document.createElement('div');
   subElements = {
-    body: []
+    root: document.createElement('div'),
+    header: document.createElement('div'),
+    body: document.createElement('div'),
   }
   currentSortFieldID = null;
   currentSortDirection = null;
@@ -12,15 +14,9 @@ export default class SortableTable {
     this.columItems = this.headerConfig.map((item) => {
       return {
         id: item.id,
-        sortable: item.sortable,
         template: item.template ? item.template : null
       };
     });
-
-    this.element = document.createElement('div');
-    this.element.classList.add('products-list__container');
-    this.element.dataset.element = 'productsContainer';
-
     this.render();
   }
 
@@ -30,10 +26,11 @@ export default class SortableTable {
         return i;
       }
     }
+
     return -1;
   }
 
-  _getHeaderColumnTemplate({id = '', title = '', sortable = false}) {
+  _getHeaderColumnTemplate = ({id = '', title = '', sortable = false}) => {
     const sortArrow = this.currentSortFieldID === id
       ? `<span data-element="arrow" class="sortable-table__sort-arrow">
             <span class="sort-arrow"></span>
@@ -55,12 +52,13 @@ export default class SortableTable {
     );
   }
 
-  _getProductTemplate(props) {
+  _getProductTemplate = (props) => {
     const content = Object.keys(props).map((prop, index) => {
       const column = this.columItems[index];
 
       if (column) {
         const columnName = column.id;
+
         if (column.template) {
           return column.template(prop);
         } else {
@@ -78,36 +76,47 @@ export default class SortableTable {
     );
   }
 
-  _getTemplate() {
-    const tableHeader = this.headerConfig.map((item) => {
-      return this._getHeaderColumnTemplate(item);
+  _generateSubElement({ data, renderTemplate }) {
+    return data.map((item) => {
+      return renderTemplate(item);
     }).join('');
-    const tableBody = this.data.map((item) => {
-      return this._getProductTemplate(item);
-    }).join('');
+  }
 
-    return (
-      `
-        <div class="sortable-table">
-          <div data-element="header" class="sortable-table__header sortable-table__row">
-            ${ tableHeader }
-          </div>
+  _generateTemplate() {
+    const { root, header, body } = this.subElements;
 
-          <div data-element="body" class="sortable-table__body">
-            ${ tableBody }
-          </div>
+    this._clearNodes();
 
-          <div data-element="loading" class="loading-line sortable-table__loading-line"></div>
+    for (const element in this.subElements) {
+      this.subElements[element].innerHTML = '';
+    }
 
-          <div data-element="emptyPlaceholder" class="sortable-table__empty-placeholder">
-            <div>
-              <p>No products satisfies your filter criteria</p>
-              <button type="button" class="button-primary-outline">Reset all filters</button>
-            </div>
-          </div>
-        </div>
-      `
-    );
+    this.element.classList.add('products-list__container');
+    this.element.dataset.element = 'productsContainer';
+
+    header.dataset.element = 'header';
+    header.classList.add('sortable-table__header', 'sortable-table__row');
+    header.insertAdjacentHTML('afterbegin', this._generateSubElement({
+      data: this.headerConfig,
+      renderTemplate: this._getHeaderColumnTemplate,
+    }));
+
+    body.dataset.element = 'body';
+    body.classList.add('sortable-table__body');
+    body.insertAdjacentHTML('afterbegin', this._generateSubElement({
+      data: this.data,
+      renderTemplate: this._getProductTemplate,
+    }));
+
+    root.classList.add('sortable-table');
+    root.insertAdjacentElement('afterbegin', header);
+    root.insertAdjacentElement('beforeend', body);
+  }
+
+  _clearNodes() {
+    for (const element in this.subElements) {
+      this.subElements[element].innerHTML = '';
+    }
   }
 
   sort(fieldValue = 'title', orderValue = 'asc') {
@@ -150,8 +159,8 @@ export default class SortableTable {
   }
 
   render() {
-    this.element.innerHTML = this._getTemplate();
-    this.subElements.body = this.element.children[0].children[1]; //выглядит как очень плохое решение, но другого не нашел
+    this._generateTemplate();
+    this.element.appendChild(this.subElements.root);
   }
 
   remove() {
@@ -162,4 +171,3 @@ export default class SortableTable {
     this.remove();
   }
 }
-
