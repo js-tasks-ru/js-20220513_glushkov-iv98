@@ -40,6 +40,11 @@ export default class SortableTable {
   _sortHandle = (event) => {
     const column = event.target.closest('[data-id]');
     const { id, order } = column.dataset;
+    const columnConfig = this.headersConfig[this._getColumnIndexByID(id)];
+
+    if (columnConfig && !columnConfig.sortable) {
+      return;
+    }
 
     this._deleteHeaderEventListeners();
     if (order === 'asc') {
@@ -184,10 +189,6 @@ export default class SortableTable {
       sortType,
       sortDirection,
     } = sortParams;
-    const columnConfig = this.headersConfig[this._getColumnIndexByID(fieldValue)];
-    if (columnConfig && !columnConfig.sortable) {
-      return;
-    }
 
     const sortOptions = {
       caseFirst: 'upper',
