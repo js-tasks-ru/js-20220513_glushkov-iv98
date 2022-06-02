@@ -10,7 +10,6 @@ export default class SortableTable {
 
   constructor(headerConfig = [], data = []) {
     this.headerConfig = headerConfig;
-    this.data = data;
     this.columItems = this.headerConfig.map((item) => {
       return {
         id: item.id,
