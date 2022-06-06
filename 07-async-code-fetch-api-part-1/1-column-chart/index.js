@@ -40,7 +40,6 @@ export default class ColumnChart {
     });
   }
 
-
   _createChartTitle() {
     const viewLink = this.link ? `<a href="/sales" class="column-chart__link">View all</a>` : '';
 
@@ -86,7 +85,7 @@ export default class ColumnChart {
     const response = await fetch(`${ apiUrl }`);
 
     if (response.ok) {
-      return await response.json();
+      return response.json();
     }
 
     throw new Error(`Could not fetch ${ apiUrl }` +
@@ -113,12 +112,20 @@ export default class ColumnChart {
     this.element.appendChild(chartContainer);
   }
 
+  _convertDate(date) {
+    if (date) {
+      const [year, month, day] = new Date(date.toString()).toLocaleDateString().split('.');
+
+      return `${day}-${month}-${year}`;
+    }
+  }
+
   update(startDate = null, endDate = null) {
     this.isLoading = true;
     this._setLoadingClass();
 
     if (startDate && endDate) {
-      return this._fetchData(startDate.toLocaleDateString(), endDate.toLocaleDateString())
+      return this._fetchData(this._convertDate(startDate), this._convertDate(endDate))
         .then((data) => {
           this.data = data;
           this.isLoading = false;
