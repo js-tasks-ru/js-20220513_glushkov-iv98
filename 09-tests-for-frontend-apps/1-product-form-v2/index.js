@@ -257,18 +257,19 @@ export default class ProductForm {
   }
 
   async render () {
-    this.product = await this._fetchProduct(this.productId);
-    this.productCategories = await this._fetchProductCategories();
+    const [products, categories] = await Promise.all([this._fetchProduct(this.productId), this._fetchProductCategories()]);
+    const product = products[0];
+
     const renderProps = {
-      product: this.product[0],
-      categories: this.productCategories,
+      product,
+      categories,
     };
 
     this.element.classList.add('product-form');
     this.element.append(this.getTemplate(renderProps));
 
     this.subElements = this.getSubElements();
-    this.subElements['imageListContainer'].append(this.getSortableList(this.product[0].images));
+    this.subElements['imageListContainer'].append(this.getSortableList(product.images));
 
     this.initEventListeners();
   }
