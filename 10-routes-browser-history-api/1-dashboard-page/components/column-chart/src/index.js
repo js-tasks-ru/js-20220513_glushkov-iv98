@@ -42,7 +42,7 @@ export default class ColumnChart {
   }
 
   _createChartTitle() {
-    const viewLink = this.link ? `<a href=/${ this.link } class="column-chart__link">View all</a>` : '';
+    const viewLink = this.link ? `<a href=/${ this.link } class="column-chart__link">Подробнее</a>` : '';
 
     this.subElements.title = document.createElement('div');
     this.subElements.title.classList.add('column-chart__title');

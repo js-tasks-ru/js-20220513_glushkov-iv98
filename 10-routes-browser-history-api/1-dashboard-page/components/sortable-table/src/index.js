@@ -47,9 +47,9 @@ export default class SortableTable {
     this.currentSortFieldID = sorted.id ? sorted.id : this.headersConfig.find(item => item.sortable).id;
     this.currentSortDirection = sorted.order ? sorted.order : 'asc';
 
-    this._initRender();
-    this._initEventListeners();
-    this._fetchData({
+    this.initRender();
+    this.initEventListeners();
+    this.fetchData({
       from: this.convertDate(this.from),
       to: this.convertDate(this.to),
       _sort: this.currentSortFieldID,
@@ -86,7 +86,7 @@ export default class SortableTable {
   onSortData = (event) => {
     const column = event.target.closest('[data-id]');
     const { id, order } = column.dataset;
-    const columnConfig = this.headersConfig[this._getColumnIndexByID(id)];
+    const columnConfig = this.headersConfig[this.getColumnIndexByID(id)];
 
     if (columnConfig && !columnConfig.sortable) {
       return;
@@ -99,7 +99,7 @@ export default class SortableTable {
     }
   }
 
-  async _fetchData(fetchParams) {
+  async fetchData(fetchParams) {
     this.element.dispatchEvent(new CustomEvent('load-data', {
       detail: {
         status: 'start'
@@ -107,11 +107,18 @@ export default class SortableTable {
     }));
 
     const apiUrl = `${ BACKEND_URL }/${ this.link }?${ new URLSearchParams(fetchParams).toString() }`;
+    const data = await fetchJson(apiUrl);
 
-    return await fetchJson(apiUrl);
+    this.element.dispatchEvent(new CustomEvent('load-data', {
+      detail: {
+        status: 'end'
+      }
+    }));
+
+    return data;
   }
 
-  _checkScrollPosition = () => {
+  checkScrollPosition = () => {
     const height = document.body.offsetHeight;
     const screenHeight = window.innerHeight;
     const scrolled = window.scrollY;
@@ -121,8 +128,8 @@ export default class SortableTable {
       this.currentLoadPosition = this.endLoadPosition;
       this.endLoadPosition += this.loadStep;
 
-      window.removeEventListener('scroll', this._checkScrollPosition);
-      this._fetchData({
+      window.removeEventListener('scroll', this.checkScrollPosition);
+      this.fetchData({
         _embed: 'subcategory.category',
         _sort: this.currentSortFieldID,
         _order: this.currentSortDirection,
@@ -130,29 +137,29 @@ export default class SortableTable {
         _end: this.endLoadPosition,
       })
         .then((data) => {
-          this._insertElements(this.subElements.body, this._createTableBody(data));
-          window.addEventListener('scroll', this._checkScrollPosition);
+          this.insertElements(this.subElements.body, this.createTableBody(data));
+          window.addEventListener('scroll', this.checkScrollPosition);
         });
     }
   }
 
-  _initEventListeners() {
+  initEventListeners() {
     for (const elem of this.subElements.header.root.children) {
       elem.addEventListener('pointerdown', this.onSortData);
     }
+    this.element.addEventListener('load-data', this.onLoadData);
     if (this.infinityScroll) {
-      this.element.addEventListener('load-data', this.onLoadData);
-      window.addEventListener('scroll', this._checkScrollPosition);
+      window.addEventListener('scroll', this.checkScrollPosition);
     }
   }
 
-  _deleteEventListeners() {
+  deleteEventListeners() {
     for (const elem of this.subElements.header.root.children) {
       elem.removeEventListener('pointerdown', this.onSortData);
     }
   }
 
-  _getColumnIndexByID = (id = '') => {
+  getColumnIndexByID = (id = '') => {
     for (let i = 0; i < this.headersConfig.length; i++) {
       if (id === this.headersConfig[i].id) {
         return i;
@@ -162,10 +169,10 @@ export default class SortableTable {
     return -1;
   }
 
-  _getHeaderColumnTemplate = ({id = '', title = '', sortable = false}) => {
+  getHeaderColumnTemplate = ({id = '', title = '', sortable = false}) => {
     const column = document.createElement('div');
     const columnLabel = document.createElement('span');
-    const columnIndex = this._getColumnIndexByID(id);
+    const columnIndex = this.getColumnIndexByID(id);
     const dataAttributes = {
       id: this.columItems[columnIndex].id,
       order: this.currentSortDirection,
@@ -184,7 +191,7 @@ export default class SortableTable {
     return column;
   }
 
-  _getProductTemplate = (props) => {
+  getProductTemplate = (props) => {
     const product = document.createElement('a');
     const content = Object.keys(props).map((prop, index) => {
       const column = this.columItems[index];
@@ -207,35 +214,35 @@ export default class SortableTable {
     return product;
   }
 
-  _generateSubElement({ data, renderTemplate }) {
+  generateSubElement({ data, renderTemplate }) {
     return renderTemplate(data);
   }
 
-  _createTableHeader() {
+  createTableHeader() {
     return this.headersConfig.map((item, index) => {
       let elem = document.createElement('div');
 
-      elem.appendChild(this._generateSubElement({
+      elem.appendChild(this.generateSubElement({
         data: this.headersConfig[index],
-        renderTemplate: this._getHeaderColumnTemplate,
+        renderTemplate: this.getHeaderColumnTemplate,
       }));
 
       return elem.firstElementChild;
     });
   }
 
-  _createTableBody(data = null) {
+  createTableBody(data = null) {
     const finalData = !data ? this.data : data;
 
     return finalData.map((item) => {
-      return this._generateSubElement({
+      return this.generateSubElement({
         data: item,
-        renderTemplate: this._getProductTemplate
+        renderTemplate: this.getProductTemplate
       });
     });
   }
 
-  _setSortArrow() {
+  setSortArrow() {
     const sortArrow = `
                       <span data-element="arrow" class="sortable-table__sort-arrow">
                         <span class="sort-arrow"></span>
@@ -252,7 +259,7 @@ export default class SortableTable {
     }
   }
 
-  _initRender() {
+  initRender() {
     this.subElements.root.classList.add('sortable-table');
 
     this.element.classList.add('products-list__container');
@@ -270,7 +277,7 @@ export default class SortableTable {
 
     this.subElements.root.insertAdjacentHTML('beforeend', this.loadingIndicator);
 
-    const headerElements = this._createTableHeader();
+    const headerElements = this.createTableHeader();
 
     headerElements.map((element) => {
       this.subElements.header.root.append(element);
@@ -309,7 +316,7 @@ export default class SortableTable {
 
     this.data = [];
     this.render();
-    this._fetchData({
+    this.fetchData({
       from: this.convertDate(from),
       to: this.convertDate(to),
       _sort: this.currentSortFieldID,
@@ -329,7 +336,7 @@ export default class SortableTable {
 
     this.data = [];
     this.render();
-    this._fetchData({
+    this.fetchData({
       _embed: 'subcategory.category',
       _sort: this.currentSortFieldID,
       _order: this.currentSortDirection,
@@ -378,7 +385,7 @@ export default class SortableTable {
     this.render();
   }
 
-  _insertElements(place, elements = []) {
+  insertElements(place, elements = []) {
     elements.map((element) => {
       place.insertAdjacentElement('beforeend', element);
     });
@@ -390,11 +397,11 @@ export default class SortableTable {
     header.root.innerHTML = '';
     body.innerHTML = '';
 
-    this._insertElements(header.root, this._createTableHeader());
-    this._insertElements(body, this._createTableBody());
+    this.insertElements(header.root, this.createTableHeader());
+    this.insertElements(body, this.createTableBody());
 
-    this._setSortArrow();
-    this._initEventListeners();
+    this.setSortArrow();
+    this.initEventListeners();
   }
 
   remove() {
@@ -403,7 +410,7 @@ export default class SortableTable {
 
   destroy() {
     this.remove();
-    this._deleteEventListeners();
+    this.deleteEventListeners();
   }
 }
 

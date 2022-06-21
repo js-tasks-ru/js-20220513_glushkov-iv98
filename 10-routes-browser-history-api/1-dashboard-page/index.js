@@ -21,7 +21,7 @@ export default class Page {
         from: new Date('2022-05-22'),
         to: new Date('2022-06-23'),
       },
-      label: 'orders',
+      label: 'Заказы',
       link: 'orders',
       classList: ['dashboard__chart_orders'],
     });
@@ -31,7 +31,7 @@ export default class Page {
         from: new Date('2022-05-22'),
         to: new Date('2022-06-23'),
       },
-      label: 'sales',
+      label: 'Продажи',
       formatHeading: data => `$${data}`,
       classList: ['dashboard__chart_sales'],
     });
@@ -41,14 +41,14 @@ export default class Page {
         from: new Date('2022-05-22'),
         to: new Date('2022-06-23'),
       },
-      label: 'customers',
+      label: 'Клиенты',
       classList: ['dashboard__chart_customers'],
     });
 
     this.components.sortableTable = new SortableTable(header, {
       from: new Date('2022-05-22'),
       to: new Date('2022-06-23'),
-      link: 'api/dashboard/bestsellers'
+      link: 'api/dashboard/bestsellers',
     });
 
     this.components.toolTip = new Tooltip();
@@ -105,9 +105,9 @@ export default class Page {
   async render() {
     this.element.classList.add('dashboard', 'full-height', 'flex-column');
 
-    await this.element.append(this.getTopPanel('Панель управления'));
-    await this.element.append(this.getCharts());
-    await this.element.append(this.getTopSalesTable('Лидеры продаж'));
+    this.element.append(this.getTopPanel('Панель управления'));
+    this.element.append(this.getCharts());
+    this.element.append(this.getTopSalesTable('Лидеры продаж'));
 
     this.components.toolTip.initialize();
 
