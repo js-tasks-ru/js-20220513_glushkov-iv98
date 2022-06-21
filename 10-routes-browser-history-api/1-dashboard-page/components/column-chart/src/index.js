@@ -3,120 +3,151 @@ import fetchJson from '../../../utils/fetch-json.js';
 const BACKEND_URL = 'https://course-js.javascript.ru';
 
 export default class ColumnChart {
-  element;
-  subElements = {};
+  classList = ['column-chart'];
   chartHeight = 50;
+  element = document.createElement('div');
+  subElements = {};
+  data = {};
+  isLoading = true;
 
-  constructor({
-    label = '',
-    link = '',
-    formatHeading = data => data,
-    url = '',
-    range = {
-      from: new Date(),
-      to: new Date(),
-    }
-  } = {}) {
-    this.url = new URL(url, BACKEND_URL);
+  constructor(props = {}) {
+    const {
+      url = '',
+      range = {},
+      label = '',
+      link = '',
+      classList = [],
+      formatHeading = (value) => value
+    } = props;
+
+    this.url = url;
     this.range = range;
     this.label = label;
     this.link = link;
+    this.classList = classList;
     this.formatHeading = formatHeading;
-
-    this.render();
+    this.data = this.update(this.range.from, this.range.to);
   }
 
-  render() {
-    const { from, to } = this.range;
-    const element = document.createElement('div');
+  _getColumnProps(data) {
+    const maxValue = Math.max(...data);
+    const scale = this.chartHeight / maxValue;
 
-    element.innerHTML = this.template;
-
-    this.element = element.firstElementChild;
-    this.subElements = this.getSubElements(this.element);
-
-    this.loadData(from, to);
+    return data.map(item => {
+      return {
+        percent: (item / maxValue * 100).toFixed(0) + '%',
+        value: String(Math.floor(item * scale))
+      };
+    });
   }
 
-  getHeaderValue(data) {
-    return this.formatHeading(Object.values(data).reduce((accum, item) => (accum + item), 0));
+  _createChartTitle() {
+    const viewLink = this.link ? `<a href=/${ this.link } class="column-chart__link">Подробнее</a>` : '';
+
+    this.subElements.title = document.createElement('div');
+    this.subElements.title.classList.add('column-chart__title');
+    this.subElements.title.insertAdjacentHTML('beforeend', `${ this.label }`);
+    this.subElements.title.insertAdjacentHTML('beforeend', viewLink);
   }
 
-  async loadData(from, to) {
-    this.element.classList.add('column-chart_loading');
-    this.subElements.header.textContent = '';
-    this.subElements.body.innerHTML = '';
+  _createChartHeader() {
+    const total = Object.values(this.data).reduce((a, b) => a + b, 0);
 
-    this.url.searchParams.set('from', from.toISOString());
-    this.url.searchParams.set('to', to.toISOString());
+    this.subElements.header = document.createElement('div');
+    this.subElements.header.classList.add('column-chart__header');
+    this.subElements.header.dataset.element = 'header';
+    this.subElements.header.insertAdjacentHTML('beforeend', `${ this.formatHeading(total) }`);
+  }
 
-    const data = await fetchJson(this.url);
+  _createChartBody() {
+    this.subElements.body = document.createElement('div');
+    this.subElements.body.classList.add('column-chart__chart');
+    this.subElements.body.dataset.element = 'body';
 
-    this.setNewRange(from, to);
+    const data = Object.entries(this.data);
+    const dates = [];
+    const values = [];
+    for (const item of data) {
+      dates.push(item[0]);
+      values.push(item[1]);
+    }
+    const columnProps = this._getColumnProps(values);
 
-    if (data && Object.values(data).length) {
-      this.subElements.header.textContent = this.getHeaderValue(data);
-      this.subElements.body.innerHTML = this.getColumnBody(data);
+    for (let i = 0; i < data.length; i++) {
+      const column = document.createElement('div');
 
+      column.style.cssText += `--value: ${ columnProps[i].value }`;
+      column.dataset.tooltip = `<div><small>${ dates[i] }</small></div><strong>${ this.formatHeading(values[i]) }</strong>`;
+      this.subElements.body.appendChild(column);
+    }
+  }
+
+  _setLoadingClass() {
+    if (this.isLoading || Object.keys(this.data).length === 0) {
+      this.element.classList.add('column-chart_loading');
+    } else {
       this.element.classList.remove('column-chart_loading');
     }
   }
 
-  setNewRange(from, to) {
-    this.range.from = from;
-    this.range.to = to;
+  async _fetchData(startDate, endDate) {
+    const apiUrl = `${ BACKEND_URL }/${ this.url }?from=${ startDate }&to=${ endDate }`;
+
+    return await fetchJson(`${ apiUrl }`);
   }
 
-  getColumnBody(data) {
-    const maxValue = Math.max(...Object.values(data));
-
-    return Object.entries(data).map(([key, value]) => {
-      const scale = this.chartHeight / maxValue;
-      const percent = (value / maxValue * 100).toFixed(0);
-      const tooltip = `<span>
-        <small>${key.toLocaleString('default', {dateStyle: 'medium'})}</small>
-        <br>
-        <strong>${percent}%</strong>
-      </span>`;
-
-      return `<div style="--value: ${Math.floor(value * scale)}" data-tooltip="${tooltip}"></div>`;
-    }).join('');
+  _insertElement(where, element) {
+    where.innerHTML = '';
+    where.appendChild(element);
   }
 
-  getLink() {
-    return this.link ? `<a class="column-chart__link" href="${this.link}">View all</a>` : '';
+  _createTemplate() {
+    const chartContainer = document.createElement('div');
+
+    this._createChartTitle();
+    this._createChartHeader();
+    this._createChartBody();
+
+    chartContainer.classList.add('column-chart__container');
+    chartContainer.appendChild(this.subElements.body);
+
+    this._insertElement(this.element, this.subElements.title);
+    this.element.appendChild(this.subElements.header);
+    this.element.appendChild(chartContainer);
   }
 
-  get template() {
-    return `
-      <div class="column-chart column-chart_loading" style="--chart-height: ${this.chartHeight}">
-        <div class="column-chart__title">
-          Total ${this.label}
-          ${this.getLink()}
-        </div>
-        <div class="column-chart__container">
-          <div data-element="header" class="column-chart__header"></div>
-          <div data-element="body" class="column-chart__chart"></div>
-        </div>
-      </div>
-    `;
+  _convertDate(date) {
+    if (date) {
+      const [year, month, day] = new Date(date.toString()).toLocaleDateString().split('.');
+
+      return `${day}-${month}-${year}`;
+    }
   }
 
-  getSubElements(element) {
-    const elements = element.querySelectorAll('[data-element]');
+  async update(startDate = new Date(), endDate = new Date()) {
+    this.isLoading = true;
+    this._setLoadingClass();
 
-    return [...elements].reduce((accum, subElement) => {
-      accum[subElement.dataset.element] = subElement;
+    this.data = await this._fetchData(this._convertDate(startDate), this._convertDate(endDate));
 
-      return accum;
-    }, {});
+    this.isLoading = false;
+    this.render();
+
+    return this.data;
   }
 
-  async update(from, to) {
-    return await this.loadData(from, to);
+  render() {
+    this.element.classList.add('column-chart', ...this.classList);
+    this.element.style.cssText += `--chart-height: ${ this.chartHeight }`;
+    this._setLoadingClass();
+    this._createTemplate();
+  }
+
+  remove() {
+    this.element.remove();
   }
 
   destroy() {
-    this.element.remove();
+    this.remove();
   }
 }
